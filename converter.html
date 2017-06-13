@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="de">
+	<head>
+		<meta charset="utf-8"/>
+	  <meta name="author" content="Herbert Braun"/>
+		<title>Base64 VLQ Converter</title>
+		<style>
+			body {font-family: sans-serif;}
+			input {display: block; margin-bottom: 1em;}
+			textarea {text-align: left; margin: 1em 0;}
+		</style>
+	</head>
+	<body>
+		<h1>Base64 VLQ Converter</h1>
+		<form action="#" method="post">
+			<textarea name="vlq" rows="10" cols="40">i+D
+			</textarea>
+			<input type="submit" value="Convert!">
+		</form>
+		<output></output>
+		<script>
+			var base64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+			var sourcemapEls = [
+				'Generated column',
+				'Original file',
+				'Original line',
+				'Original column',
+				'Original name'
+			];
+			var debug = false;
+			var output = true;
+
+			// Read input
+			var f = document.getElementsByTagName('form')[0],
+				outputArea = document.getElementsByTagName('output')[0];
+			f.addEventListener('submit', ev => {
+				ev.preventDefault();
+				var inp = ev.target.getElementsByTagName('textarea')[0].value,
+					vlqLines = inp.split(';'),
+					tmpVals = [0,0,0,0,0],
+					outputBuffer = '';
+
+				// Separate VLQ lines
+				vlqLines.forEach((line, lineNr) => {
+					tmpVals[0] = 0; // reset first value in new lines
+					var vlqs = line.split(/[^A-Za-z0-9+\/]+/);
+					vlqs = vlqs.filter(el => {
+						return el.length;
+					});
+					if (debug) console.info(vlqs);
+
+					// Split up VLQs
+					vlqs.forEach(el => {
+						var char = el.split(''),
+							buffers = [],
+							translated = [],
+							buffer = [];
+						char.forEach(c => {
+							var cVal = base64.indexOf(c);
+							buffer.push(cVal);
+							if (cVal < 32) {
+								buffers.push(buffer);
+								buffer = [];
+							}
+						});
+						if (buffer.length) {
+							console.error('Invalid: ends with continuation bit');
+						}
+						if (buffers.length !== 1 && buffers.length !== 4 && buffers.length !== 5)
+							console.warn('Number of values doesn\'t match a sourcemap');
+
+						// Translate values
+						buffers.forEach(buf => {
+							var bufVals = buf.reverse(),
+								binVal = 0b0,
+								sign;
+							bufVals.forEach((bin, i, arr) => {
+								bin = bin & 0b011111; // remove first bit
+								if (binVal) binVal = binVal << 5;
+								binVal += bin;
+							});
+							sign = binVal & 0b1? true : false;
+							binVal = binVal >> 1;
+							if (sign) binVal *= -1;
+							translated.push(binVal);
+						});
+						if (debug) console.info(translated);
+
+						// Output
+						if (!output) return;
+						outputBuffer += '<mark>' + el + "</mark><br>\n";
+						outputBuffer += 'Generated line: ' + lineNr + "<br>\n";
+						translated.forEach((val, i) => {
+							var tmpVal = val + tmpVals[i];
+							outputBuffer += sourcemapEls[i] + ': <i>' + val + '</i> + ' + tmpVals[i] + ' = <b>' + tmpVal  + "</b><br>\n";
+							tmpVals[i] = tmpVal;
+						});
+						outputBuffer += "<br>\n";
+					});
+				});
+
+				if (output) outputArea.innerHTML = outputBuffer;
+				if (debug) console.info('Done');
+			}, false);
+		</script>
+	</body>
+</html>
