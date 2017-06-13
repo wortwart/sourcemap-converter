@@ -1,7 +1,7 @@
 # sourcemap-converter
-** Reads and analyzes Base64 VLQ coded source mappings **
+**Reads and analyzes Base64 VLQ coded source mappings**
 
-* This project was created for an article in [c't Magazin](https://ct.de/). *
+*This project was created for an article in [c't Magazin](https://ct.de/).*
 
 JavaScript and basic styling are included in the HTML. Just enter Base64 VLQ code from any sourcemap. The converter will discard anything which is not Base64 - `[A-Za-z0-9+/]` - , comma, or semicolon. Typically, mappings look lik that:
 
